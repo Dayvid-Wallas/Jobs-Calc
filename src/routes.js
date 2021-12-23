@@ -20,13 +20,25 @@ const profile = {
             return response.render(`${folderViews}profile`, { profile: profile.data });
         },
 
-        update() {
-
+        update(request, response) {
+            const data = request.body;
+            const weeksPerYear = 52;
+            const weeksPerMonth = (weeksPerYear - data['vacation-per-year']) / 12;
+            const weekTotalHours = data['hours-per-day'] * data['days-per-week'];
+            const monthlyTotalHours = weekTotalHours * weeksPerMonth;
+            const value_Hour = data['monthly-budget'] / monthlyTotalHours;
+            
+            profile.data = {
+                ...profile.data,
+                ...request.body,
+                valueHour: value_Hour
+            };
+            return response.redirect('/profile');
         }
     }
 };
 
-const job = {
+const Job = {
     data: [
         {
             id: 1,
@@ -46,14 +58,14 @@ const job = {
 
     controllers: {
         index(request, response) {
-            const newArrayJobs = job.data.map((job) => {
-            const remaining = job.services.remainingDays(job);
+            const newArrayJobs = Job.data.map((job) => {
+            const remaining = Job.services.remainingDays(job);
             const status = remaining <= 0 ? 'done' : 'progress';
             return {
                 ...job,
                 remaining,
                 status,
-                price: profile.data.valueHour * job['total-hours']
+                price: Job.services.calculatetPrice(job, profile['value-hour'])
             }
         })
         return response.render(`${folderViews}index`, { jobs: newArrayJobs });
@@ -66,8 +78,8 @@ const job = {
         //Creating POST route to receive form data
         save(request, response) {
             //request.body = { name: 'Dayvid', 'daily-hours': '6', 'total-hours': '20' }            
-            const lastId = job.data[job.data.length - 1]?.id || 1;            
-            jobs.push({
+            const lastId = Job.data[Job.data.length - 1]?.id || 1;            
+            Job.data.push({
                 id: lastId + 1,
                 name: request.body.name,
                 'daily-hours': request.body['daily-hours'],
@@ -75,31 +87,44 @@ const job = {
                 createdIn: Date.now()
             });
             return response.redirect('/');
+        },
+
+        show(request, response) {
+            const jobId = request.params.id;
+            const job = Job.data.find((job) => {
+                return Number(job.id) === Number(jobId);
+            })
+            if(!job) {
+                return response.send('Job not found');
+            }
+            Job.price = Job.services.calculatetPrice(job, profile['value-hour'])
+            return response.render(`${folderViews}job-edit`, { job });
         }
     },
 
     services: {
         remainingDays(job) {
-            const remainingDays = (job.data['total-hours'] / job.data['daily-hours']).toFixed();
-            const createdDate = new Date(job.data.createdIn);
+            const remainingDays = (job['total-hours'] / job['daily-hours']).toFixed();
+            const createdDate = new Date(job.createdIn);
             const dueDay = createdDate.getDate() + Number(remainingDays);
             const dueDateInMs = createdDate.setDate(dueDay);
             const timeDiffInMs = dueDateInMs - Date.now();
             const dayInMs = 1000 * 60 * 60 * 24;
             const dayDiff = Math.floor(timeDiffInMs / dayInMs);
             return dayDiff;
+        },
+
+        calculatetPrice(job, valueHour) {
+            return valueHour * job['total-hours'];
         }
     }
 };
 
-routes.get('/', job.controllers.index);
-routes.get('/job', job.controllers.create);
-routes.post('/job', job.controllers.save);
+routes.get('/', Job.controllers.index);
+routes.get('/job', Job.controllers.create);
+routes.post('/job', Job.controllers.save);
 routes.get('/profile', profile.controllers.index);
 routes.post('/profile', profile.controllers.update);
-
-routes.get('/job-edit', (request, response) => {
-    return response.render(`${folderViews}job-edit`);
-});
+routes.get('/job/:id', Job.controllers.show);
 
 module.exports = routes;
