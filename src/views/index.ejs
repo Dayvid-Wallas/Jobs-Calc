@@ -22,7 +22,7 @@
       rel="stylesheet"
     />
 
-    <!-- <script src="scripts/index.js" defer type="module"></script> -->
+    <script src="scripts/index.js" defer type="module"></script>
   </head>
   <body id="page-index">
     <header class="page-header">
@@ -84,10 +84,10 @@
 
           <% jobs.forEach((job) => { %>
 
-            <div class="card <%- job.status %> " data-id="<%- job.id  %> ">
-              <div class="id column"><%- job.id %> </div>
+            <div class="card <%- job.status %> " data-id="<%= job.id %>">
+              <div class="id column"><%= job.id %></div>
               <div class="name column">
-                <%- job.name %> 
+                <%= job.name %> 
               </div>
               <div class="deadline column">
                 <span>Prazo</span>
@@ -109,7 +109,7 @@
               <div class="actions column flex">
                 <p class="sr-only">Ações</p>
                 <a 
-                  href="/job/<%= job.id %> " 
+                  href="/job/<%= job.id %>" 
                   class="button white edit" 
                   title="Editar Job">
                   <img src="/images/edit-24.svg" alt="Editar Job" />
